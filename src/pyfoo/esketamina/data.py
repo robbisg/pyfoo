@@ -19,8 +19,6 @@ def get_feature_importance(cv, data_rem):
     df_features = pd.DataFrame(features, columns=columns) 
     
     return df_features
-    
-    
 
 
 def plot_importance(cv, data_rem, n_features=30):
@@ -34,26 +32,25 @@ def plot_importance(cv, data_rem, n_features=30):
     sns.barplot(data=df_plot, y='variable', x='value', orient='h', ax=ax)
       
       
-        
-
 def get_partial_dependence(cv, data, columns):
        
     importance = dict()
     for estimator in cv['estimator']:
         for feature in columns:
             results = partial_dependence(estimator, data, features=feature)
+            #print(results['average'].shape)
             if feature not in importance.keys():
                 importance[feature] = dict()
                 importance[feature]['values'] = []
-            else:
-                importance[feature]['values'].append(results[0].squeeze())
-                importance[feature]['grid'] = results[1][0]
+                importance[feature]['grid'] = []
+                            
+            importance[feature]['values'].append(results['average'].squeeze())
+            importance[feature]['grid'].append(results['grid_values'][0])
     
     return importance
 
 
-
-def plot_direction(cv, data, columns, plot_shape=(5, 5), color='blue'):
+def plot_direction(cv, data, columns, plot_shape=(5, 5), color='blue', title=None):
     
     if columns.shape[0] > 25:
         columns = columns[:25]
@@ -64,7 +61,6 @@ def plot_direction(cv, data, columns, plot_shape=(5, 5), color='blue'):
         cols = np.rint(np.sqrt(columns.shape[0]))
         rows = np.ceil(columns.shape[0] / cols)
         plot_shape = (int(rows), int(cols))
-    
     
     importance = get_partial_dependence(cv, data, columns)
     
@@ -78,15 +74,17 @@ def plot_direction(cv, data, columns, plot_shape=(5, 5), color='blue'):
         feature_importance = np.array(importance[feature]['values'])
         feature_importance = (feature_importance - feature_importance.min()) \
             / (feature_importance.max() - feature_importance.min())
-        ax.plot(importance[feature]['grid'], feature_importance.T, 
-                alpha=0.03, c=color)
-        ax.plot(importance[feature]['grid'], feature_importance.mean(0), c=color)
+        ax.plot(importance[feature]['grid'][0], feature_importance.T, 
+                alpha=0.05, c=color)
+        ax.plot(importance[feature]['grid'][0], feature_importance.mean(0), c=color)
         ax.set_title(feature)
         
-    pl.tight_layout()
+    if title is not None:
+        fig.suptitle(title)
     
+    pl.tight_layout()
+        
     return fig, axes
-
 
 
 def get_esketamina_data(kind='t1', response='madrs'):
@@ -207,3 +205,4 @@ def get_esketamina_data(kind='t1', response='madrs'):
     data['precedenti EDM (n)'].loc[mask_edm] = np.mean(data['precedenti EDM (n)'].loc[np.logical_not(mask_edm)])
     
     return data, y
+
