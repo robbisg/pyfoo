@@ -17,13 +17,14 @@ columns_to_drop = [
     'bdz_prev', 'moodstab_prev', 'altro_prev', 'bdz_sost', 'coc_sost', 
     'alcol_sost', 'nicot_sost', 'thc_sost', 'opi_sost', 'amph_sost', 'nps_sost',
     'patologieorganichecomorbili', 'tmta_t0', 'tmtb_t0', 'tmta_t1', 'tmtb_t1',
-    'tmta_t2', 'tmtb_t2', 'tmta_t3', 'tmtb_t3', 
+    'tmta_t2', 'tmtb_t2', 'tmta_t3', 'tmtb_t3', 'var00007', 'centro',
     'ctqea_cutoff', 'ctqpa_cutoff', 'ctqen_cutoff', 'ctqpn_cutoff', 'ctqsa_cutoff', 'ctqde_cutoff', 
     'deltat0t1', 'deltat0t2', 'deltat0t2_dicotomico'
 ]
 
 
-def get_remodula_data(madrs_cutoff=0.5, percentage_missing_columns=0.45, percentage_missing_subjects=0.45):
+def get_remodula_data(kind='t1', response='cutoff', madrs_cutoff=0.5, 
+                      percentage_missing_columns=0.45, percentage_missing_subjects=0.45):
     
     path = "/media/robbis/DATA/meg/remodula/"
     fname = "remodula.xlsx"
@@ -37,25 +38,32 @@ def get_remodula_data(madrs_cutoff=0.5, percentage_missing_columns=0.45, percent
 
     # Exclude rows using column 'escludere' and then drop the column
     dataframe = dataframe[dataframe['escludere'] != 1].drop(columns=['escludere'])
-    dataframe['madrs_t1'] = dataframe['madrs_t1'].fillna(0)
+    dataframe[f'madrs_{kind}'] = dataframe[f'madrs_{kind}'].fillna(0)
 
 
     # Select columns with t0, t1 and count missing values on a row basis
     t0_columns = [col for col in dataframe.columns if col.endswith('_t0')]
     t1_columns = [col for col in dataframe.columns if col.endswith('_t1')]
+    t1r_columns = [col for col in dataframe.columns if col.endswith('_t1_r')]
     t2_columns = [col for col in dataframe.columns if col.endswith('_t2')]
     t3_columns = [col for col in dataframe.columns if col.endswith('_t3')]
 
     # Remove madrs_t1 from t1_columns
-    t1_columns.remove('madrs_t1')
+    if kind == 't1':
+        t1_columns.remove('madrs_t1')
+    elif kind == 't2':
+        t2_columns.remove('madrs_t2')
+        t2_columns.append('madrs_t1') # 
 
     num_missing_t0 = dataframe[t0_columns].isnull().sum(axis=1) / len(t0_columns)
     num_missing_t1 = dataframe[t1_columns].isnull().sum(axis=1) / len(t1_columns)
 
     # Exclude t1, t2, t3 columns
-    dataframe = dataframe.drop(columns=t1_columns + t2_columns + t3_columns)
+    if kind == 't1':
+        dataframe = dataframe.drop(columns=t1_columns + t2_columns + t3_columns + t1r_columns)
+    else:
+        dataframe = dataframe.drop(columns=t2_columns + t3_columns)
 
-    # Fill missing values in madrs_t1 with zero
     dataframe = dataframe[~np.isnan(dataframe['madrs_t0'])]
 
     # Clean the dataframe using skrub
@@ -80,7 +88,14 @@ def get_remodula_data(madrs_cutoff=0.5, percentage_missing_columns=0.45, percent
 
     cleaned_dataframe = cleaned_dataframe[~subjects_with_missing]
 
-    X = cleaned_dataframe.drop(columns=['codicepaziente', 'madrs_t1', 'madrs_t0'])
-    y = (cleaned_dataframe['madrs_t1'] / cleaned_dataframe['madrs_t0']) <= madrs_cutoff
+    X = cleaned_dataframe.drop(columns=['codicepaziente', f'madrs_{kind}', 'madrs_t0'])
+    
+    if response == 'cutoff':
+        y = (cleaned_dataframe[f'madrs_{kind}'] / cleaned_dataframe['madrs_t0']) <= madrs_cutoff
+    elif response == 'madrs':
+        y = (cleaned_dataframe[f'madrs_{kind}'] < 10).astype(int)
+    elif response == 'median':
+        median = (cleaned_dataframe[f'madrs_{kind}'] / cleaned_dataframe['madrs_t0']).median()
+        y = (cleaned_dataframe[f'madrs_{kind}'] / cleaned_dataframe['madrs_t0']) <= median
 
     return X, y
