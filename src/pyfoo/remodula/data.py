@@ -23,12 +23,21 @@ columns_to_drop = [
 ]
 
 
-def get_remodula_data(kind='t1', response='cutoff', madrs_cutoff=0.5, 
-                      percentage_missing_columns=0.45, percentage_missing_subjects=0.45):
+def get_remodula_data(kind='t1', response='cutoff', 
+                      data_type='basic', madrs_cutoff=0.5, 
+                      percentage_missing_columns=0.45, 
+                      percentage_missing_subjects=0.45):
     
     path = "/media/robbis/DATA/meg/remodula/"
-    fname = "remodula.xlsx"
-    
+
+
+    if data_type == 'biological':
+        fname = "remodula_bio.xlsx"
+    elif data_type == 'basic':
+        fname = "remodula.xlsx"
+    else:
+        raise ValueError(f"data_type must be 'biological' or 'clinical', got {data_type}")
+        
     raw_dataframe = pd.read_excel(os.path.join(path, fname))
 
     # Change column names to remove spaces, dots, and uppercase
