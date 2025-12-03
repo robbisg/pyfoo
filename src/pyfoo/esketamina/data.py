@@ -37,7 +37,10 @@ def get_partial_dependence(cv, data, columns):
     importance = dict()
     for estimator in cv['estimator']:
         for feature in columns:
-            results = partial_dependence(estimator, data, features=feature)
+            try:
+                results = partial_dependence(estimator, data, features=feature)
+            except Exception as err:
+                continue
             #print(results['average'].shape)
             if feature not in importance.keys():
                 importance[feature] = dict()
