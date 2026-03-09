@@ -7,6 +7,8 @@ from sklearn.inspection import partial_dependence
 from skrub import Cleaner, TableReport
 from sklearn.preprocessing import StandardScaler
 
+from sklearn.preprocessing import StandardScaler
+
 import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -20,7 +22,7 @@ columns_to_drop = [
     'patologieorganichecomorbili', 'tmta_t0', 'tmtb_t0', 'tmta_t1', 'tmtb_t1',
     'tmta_t2', 'tmtb_t2', 'tmta_t3', 'tmtb_t3', 'var00007', 'centro',
     'ctqea_cutoff', 'ctqpa_cutoff', 'ctqen_cutoff', 'ctqpn_cutoff', 'ctqsa_cutoff', 'ctqde_cutoff', 
-    'deltat0t1', 'deltat0t2', 'deltat0t2_dicotomico'
+    'deltat0t1', 'deltat0t2', 'deltat0t2_dicotomico', 'hamd_t1', 'hama_t1' 
 ]
 
 
@@ -29,7 +31,7 @@ def get_remodula_data(kind='t1', response='cutoff',
                       percentage_missing_columns=0.45, 
                       percentage_missing_subjects=0.45):
     
-    path = "/media/robbis/DATA/meg/remodula/"
+    path = "/media/bioadmin/DATA/Shared/remodula/"
 
 
     if data_type == 'biological' or data_type == 'onlybio':
@@ -57,22 +59,30 @@ def get_remodula_data(kind='t1', response='cutoff',
     t1r_columns = [col for col in dataframe.columns if col.endswith('_t1_r')]
     t2_columns = [col for col in dataframe.columns if col.endswith('_t2')]
     t3_columns = [col for col in dataframe.columns if col.endswith('_t3')]
+    bprs_columns = [col for col in dataframe.columns if col.startswith('bprs')]
+    dic_columns = [col for col in dataframe.columns if col.endswith('_dic')]
+    bprs_columns = []
+    dic_columns = []
 
     # Remove madrs_t1 from t1_columns
     if kind == 't1':
         t1_columns.remove('madrs_t1')
+        madrs_cutoff = .5
     elif kind == 't2':
         t2_columns.remove('madrs_t2')
         t2_columns.append('madrs_t1') # 
 
     num_missing_t0 = dataframe[t0_columns].isnull().sum(axis=1) / len(t0_columns)
     num_missing_t1 = dataframe[t1_columns].isnull().sum(axis=1) / len(t1_columns)
+    
+
+    useless_columns = t2_columns + t3_columns + bprs_columns + dic_columns
 
     # Exclude t1, t2, t3 columns
     if kind == 't1':
-        dataframe = dataframe.drop(columns=t1_columns + t2_columns + t3_columns + t1r_columns)
+        dataframe = dataframe.drop(columns=t1_columns + useless_columns + t1r_columns)
     else:
-        dataframe = dataframe.drop(columns=t2_columns + t3_columns)
+        dataframe = dataframe.drop(columns=t1_columns + useless_columns + t1r_columns)
 
     dataframe = dataframe[~np.isnan(dataframe['madrs_t0'])]
 
@@ -137,10 +147,52 @@ def get_remodula_data(kind='t1', response='cutoff',
 
         cleaned_dataframe = cleaned_dataframe[keep_columns]
 
+    if data_type == 'biological':
+        bio_columns = [
+            'bdnf_pgml_t0', 'probdnf_pgml_t0', 'bdnfprobdnf_t0', 'tnfalfa_pgml_t0',
+            'pcr_mgl_t0', 'acth_pgml_t0', 'tsh_microuiml_t0', 'ft3_pgml_t0',
+            'ft4_ngdl_t0', 'il1b_pgml_t0', 'il5_pgml_t0', 'il6_pgml_t0',
+            'bdnf_pgml_t1', 'probdnf_pgml_t1', 'bdnfprobdnf_t1', 'tnfalfa_pgml_t1',
+            'pcr_mgl_t1', 'acth_pgml_t1', 'tsh_microuiml_t1', 'ft3_pgml_t1',
+            'ft4_ngdl_t1', 'il1b_pgml_t1', 'il5_pgml_t1', 'il6_pgml_t1',
+            'bdnf_pgml_t2', 'probdnf_pgml_t2', 'bdnfprobdnf_t2', 'tnfalfa_pgml_t2',
+            'pcr_mgl_t2', 'acth_pgml_t2', 'tsh_microuiml_t2', 'ft3_pgml_t2',
+            'ft4_ngdl_t2', 'il1b_pgml_t2', 'il5_pgml_t2', 'il6_pgml_t2'
+        ]
+        
+        for col in bio_columns:
+            # Scale biological columns
+            if col in cleaned_dataframe.columns:
+                scaler = StandardScaler()
+                cleaned_dataframe[col] = scaler.fit_transform(cleaned_dataframe[[col]])
+            else:
+                logger.info(f"Column {col} not found")
+    elif data_type == 'onlybio':
+        bio_columns = [
+            'bdnf_pgml_t0', 'probdnf_pgml_t0', 'bdnfprobdnf_t0', 'tnfalfa_pgml_t0',
+            'pcr_mgl_t0', 'acth_pgml_t0', 'tsh_microuiml_t0', 'ft3_pgml_t0',
+            'ft4_ngdl_t0', 'il1b_pgml_t0', 'il5_pgml_t0', 'il6_pgml_t0',
+            'bdnf_pgml_t1', 'probdnf_pgml_t1', 'bdnfprobdnf_t1', 'tnfalfa_pgml_t1',
+            'pcr_mgl_t1', 'acth_pgml_t1', 'tsh_microuiml_t1', 'ft3_pgml_t1',
+            'ft4_ngdl_t1', 'il1b_pgml_t1', 'il5_pgml_t1', 'il6_pgml_t1',
+            'bdnf_pgml_t2', 'probdnf_pgml_t2', 'bdnfprobdnf_t2', 'tnfalfa_pgml_t2',
+            'pcr_mgl_t2', 'acth_pgml_t2', 'tsh_microuiml_t2', 'ft3_pgml_t2',
+            'ft4_ngdl_t2', 'il1b_pgml_t2', 'il5_pgml_t2', 'il6_pgml_t2', f'madrs_{kind}',
+            'madrs_t0', 'codicepaziente'
+        ]
+
+        keep_columns = []
+        for col in bio_columns:
+            if col in cleaned_dataframe.columns:
+                keep_columns.append(col)
+
+        cleaned_dataframe = cleaned_dataframe[keep_columns]
+
+
     X = cleaned_dataframe.drop(columns=['codicepaziente', f'madrs_{kind}', 'madrs_t0'])
     
     if response == 'cutoff':
-        y = (cleaned_dataframe[f'madrs_{kind}'] / cleaned_dataframe['madrs_t0']) <= madrs_cutoff
+        y = (cleaned_dataframe[f'madrs_{kind}'] / cleaned_dataframe['madrs_t0']) < madrs_cutoff
     elif response == 'madrs':
         y = (cleaned_dataframe[f'madrs_{kind}'] < 10).astype(int)
     elif response == 'median':
