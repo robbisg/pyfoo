@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.inspection import partial_dependence
 from skrub import Cleaner, TableReport
+from sklearn.preprocessing import StandardScaler
 
 import logging
 logging.basicConfig(level=logging.INFO)
@@ -31,7 +32,7 @@ def get_remodula_data(kind='t1', response='cutoff',
     path = "/media/robbis/DATA/meg/remodula/"
 
 
-    if data_type == 'biological':
+    if data_type == 'biological' or data_type == 'onlybio':
         fname = "remodula_bio.xlsx"
     elif data_type == 'basic':
         fname = "remodula.xlsx"
@@ -96,6 +97,45 @@ def get_remodula_data(kind='t1', response='cutoff',
     logger.info(f"Subjects with more than {percentage_missing_subjects * 100}% missing values: {subjects_codes_with_missing}")
 
     cleaned_dataframe = cleaned_dataframe[~subjects_with_missing]
+    
+    if data_type == 'biological':
+        bio_columns = [
+            'bdnf_pgml_t0', 'probdnf_pgml_t0', 'bdnfprobdnf_t0', 'tnfalfa_pgml_t0',
+            'pcr_mgl_t0', 'acth_pgml_t0', 'tsh_microuiml_t0', 'ft3_pgml_t0',
+            'ft4_ngdl_t0', 'il1b_pgml_t0', 'il5_pgml_t0', 'il6_pgml_t0',
+            'bdnf_pgml_t1', 'probdnf_pgml_t1', 'bdnfprobdnf_t1', 'tnfalfa_pgml_t1',
+            'pcr_mgl_t1', 'acth_pgml_t1', 'tsh_microuiml_t1', 'ft3_pgml_t1',
+            'ft4_ngdl_t1', 'il1b_pgml_t1', 'il5_pgml_t1', 'il6_pgml_t1',
+            'bdnf_pgml_t2', 'probdnf_pgml_t2', 'bdnfprobdnf_t2', 'tnfalfa_pgml_t2',
+            'pcr_mgl_t2', 'acth_pgml_t2', 'tsh_microuiml_t2', 'ft3_pgml_t2',
+            'ft4_ngdl_t2', 'il1b_pgml_t2', 'il5_pgml_t2', 'il6_pgml_t2'
+        ]
+        
+        for col in bio_columns:
+            # Scale biological columns
+            if col in cleaned_dataframe.columns:
+                scaler = StandardScaler()
+                #cleaned_dataframe[col] = scaler.fit_transform(cleaned_dataframe[[col]])
+    elif data_type == 'onlybio':
+        bio_columns = [
+            'bdnf_pgml_t0', 'probdnf_pgml_t0', 'bdnfprobdnf_t0', 'tnfalfa_pgml_t0',
+            'pcr_mgl_t0', 'acth_pgml_t0', 'tsh_microuiml_t0', 'ft3_pgml_t0',
+            'ft4_ngdl_t0', 'il1b_pgml_t0', 'il5_pgml_t0', 'il6_pgml_t0',
+            'bdnf_pgml_t1', 'probdnf_pgml_t1', 'bdnfprobdnf_t1', 'tnfalfa_pgml_t1',
+            'pcr_mgl_t1', 'acth_pgml_t1', 'tsh_microuiml_t1', 'ft3_pgml_t1',
+            'ft4_ngdl_t1', 'il1b_pgml_t1', 'il5_pgml_t1', 'il6_pgml_t1',
+            'bdnf_pgml_t2', 'probdnf_pgml_t2', 'bdnfprobdnf_t2', 'tnfalfa_pgml_t2',
+            'pcr_mgl_t2', 'acth_pgml_t2', 'tsh_microuiml_t2', 'ft3_pgml_t2',
+            'ft4_ngdl_t2', 'il1b_pgml_t2', 'il5_pgml_t2', 'il6_pgml_t2',
+            'madrs_t0', f'madrs_{kind}', 'codicepaziente'
+        ]
+        
+        keep_columns = []
+        for col in bio_columns:
+            if col in cleaned_dataframe.columns:
+                keep_columns.append(col)
+
+        cleaned_dataframe = cleaned_dataframe[keep_columns]
 
     X = cleaned_dataframe.drop(columns=['codicepaziente', f'madrs_{kind}', 'madrs_t0'])
     
