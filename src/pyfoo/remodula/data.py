@@ -26,12 +26,10 @@ columns_to_drop = [
 ]
 
 
-def get_remodula_data(kind='t1', response='cutoff', 
+def get_remodula_data(kind='t1', response='cutoff',
                       data_type='basic', madrs_cutoff=0.5, 
                       percentage_missing_columns=0.45, 
-                      percentage_missing_subjects=0.45, 
-                      n_classes=None
-                      ):
+                      percentage_missing_subjects=0.45):
     
     path = "/media/robbis/DATA/meg/remodula/"
 
@@ -50,6 +48,7 @@ def get_remodula_data(kind='t1', response='cutoff',
     dataframe = raw_dataframe.drop(columns=columns_to_drop)
 
     # Exclude rows using column 'escludere' and then drop the column
+    print(f"Number of excluded subjects {np.count_nonzero(dataframe['escludere'] == 1)}")
     dataframe = dataframe[dataframe['escludere'] != 1].drop(columns=['escludere'])
     dataframe[f'madrs_{kind}'] = dataframe[f'madrs_{kind}'].fillna(0)
 
@@ -72,6 +71,11 @@ def get_remodula_data(kind='t1', response='cutoff',
     elif kind == 't2':
         t2_columns.remove('madrs_t2')
         t2_columns.append('madrs_t1') # 
+
+    if n_classes is not None:
+        t2_columns.remove('madrs_t2')
+        dataframe['madrs_t2'] = dataframe['madrs_t2'].fillna(0)
+
 
     num_missing_t0 = dataframe[t0_columns].isnull().sum(axis=1) / len(t0_columns)
     num_missing_t1 = dataframe[t1_columns].isnull().sum(axis=1) / len(t1_columns)
@@ -189,8 +193,11 @@ def get_remodula_data(kind='t1', response='cutoff',
 
         cleaned_dataframe = cleaned_dataframe[keep_columns]
 
+    X_toremove = ['codicepaziente', f'madrs_{kind}', 'madrs_t0']
+    if n_classes is not None:
+        X_toremove.append('madrs_t2')
 
-    X = cleaned_dataframe.drop(columns=['codicepaziente', f'madrs_{kind}', 'madrs_t0'])
+    X = cleaned_dataframe.drop(columns=X_toremove)
     
     if response == 'cutoff':
         y = (cleaned_dataframe[f'madrs_{kind}'] / cleaned_dataframe['madrs_t0']) < madrs_cutoff
@@ -199,11 +206,13 @@ def get_remodula_data(kind='t1', response='cutoff',
     elif response == 'median':
         median = (cleaned_dataframe[f'madrs_{kind}'] / cleaned_dataframe['madrs_t0']).median()
         y = (cleaned_dataframe[f'madrs_{kind}'] / cleaned_dataframe['madrs_t0']) <= median
-        
-    if n_classes is not None:
-            y1 = (cleaned_dataframe[f'madrs_t1'] / cleaned_dataframe['madrs_t0']) < madrs_cutoff
-            y2 = (cleaned_dataframe[f'madrs_t2'] / cleaned_dataframe['madrs_t0']) < madrs_cutoff
 
-            y = 2*y1.astype(int) + y2.astype(int)
+    if n_classes is not None:
+        y1 = (cleaned_dataframe[f'madrs_t1'] / cleaned_dataframe['madrs_t0']) < madrs_cutoff
+        y2 = (cleaned_dataframe[f'madrs_t2'] / cleaned_dataframe['madrs_t0']) < madrs_cutoff
+
+        y = 2*y1.astype(int) + y2.astype(int)
+        
+        y[np.logical_or(y==1, y==2)] = 2
 
     return X, y
