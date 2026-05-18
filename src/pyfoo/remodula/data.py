@@ -29,10 +29,11 @@ columns_to_drop = [
 def get_remodula_data(kind='t1', response='cutoff', 
                       data_type='basic', madrs_cutoff=0.5, 
                       percentage_missing_columns=0.45, 
-                      percentage_missing_subjects=0.45):
+                      percentage_missing_subjects=0.45, 
+                      n_classes=None
+                      ):
     
-    path = "/media/bioadmin/DATA/Shared/remodula/"
-
+    path = "/media/robbis/DATA/meg/remodula/"
 
     if data_type == 'biological' or data_type == 'onlybio':
         fname = "remodula_bio.xlsx"
@@ -198,5 +199,11 @@ def get_remodula_data(kind='t1', response='cutoff',
     elif response == 'median':
         median = (cleaned_dataframe[f'madrs_{kind}'] / cleaned_dataframe['madrs_t0']).median()
         y = (cleaned_dataframe[f'madrs_{kind}'] / cleaned_dataframe['madrs_t0']) <= median
+        
+    if n_classes is not None:
+            y1 = (cleaned_dataframe[f'madrs_t1'] / cleaned_dataframe['madrs_t0']) < madrs_cutoff
+            y2 = (cleaned_dataframe[f'madrs_t2'] / cleaned_dataframe['madrs_t0']) < madrs_cutoff
+
+            y = 2*y1.astype(int) + y2.astype(int)
 
     return X, y
