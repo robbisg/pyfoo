@@ -29,9 +29,10 @@ columns_to_drop = [
 def get_remodula_data(kind='t1', response='cutoff',
                       data_type='basic', madrs_cutoff=0.5, 
                       percentage_missing_columns=0.45, 
-                      percentage_missing_subjects=0.45):
+                      percentage_missing_subjects=0.45, 
+                      n_classes=None):
     
-    path = "/media/robbis/DATA/meg/remodula/"
+    path = "/media/bioadmin/DATA/Shared/remodula/"
 
     if data_type == 'biological' or data_type == 'onlybio':
         fname = "remodula_bio.xlsx"
@@ -39,17 +40,19 @@ def get_remodula_data(kind='t1', response='cutoff',
         fname = "remodula.xlsx"
     else:
         raise ValueError(f"data_type must be 'biological' or 'clinical', got {data_type}")
+    
+    print(f"Using {fname}")
         
     raw_dataframe = pd.read_excel(os.path.join(path, fname))
 
     # Change column names to remove spaces, dots, and uppercase
     raw_dataframe.columns = raw_dataframe.columns.str.replace(r'[.\n\s]+', '_', regex=True).str.lower()
 
-    dataframe = raw_dataframe.drop(columns=columns_to_drop)
+    dataframe = raw_dataframe.drop(columns=columns_to_drop, errors='ignore')
 
     # Exclude rows using column 'escludere' and then drop the column
     print(f"Number of excluded subjects {np.count_nonzero(dataframe['escludere'] == 1)}")
-    dataframe = dataframe[dataframe['escludere'] != 1].drop(columns=['escludere'])
+    dataframe = dataframe[dataframe['escludere'] != 1].drop(columns=['escludere'], errors='ignore')
     dataframe[f'madrs_{kind}'] = dataframe[f'madrs_{kind}'].fillna(0)
 
 
@@ -85,15 +88,17 @@ def get_remodula_data(kind='t1', response='cutoff',
 
     # Exclude t1, t2, t3 columns
     if kind == 't1':
-        dataframe = dataframe.drop(columns=t1_columns + useless_columns + t1r_columns)
+        dataframe = dataframe.drop(columns=t1_columns + useless_columns + t1r_columns, errors='ignore')
     else:
-        dataframe = dataframe.drop(columns=t1_columns + useless_columns + t1r_columns)
+        dataframe = dataframe.drop(columns=useless_columns, errors='ignore')
 
     dataframe = dataframe[~np.isnan(dataframe['madrs_t0'])]
 
     # Clean the dataframe using skrub
     cleaner = Cleaner()
     cleaned_dataframe = cleaner.fit_transform(dataframe)
+
+    cleaned_dataframe = dataframe.copy()
 
     # How many missing values are there in each column?
     missing_values = cleaned_dataframe.isnull().sum()
@@ -102,7 +107,7 @@ def get_remodula_data(kind='t1', response='cutoff',
     names_of_missing = columns_with_too_many_missing.index.tolist()
     logger.info(f"Columns with more than {percentage_missing_columns * 100}% missing values: {names_of_missing}")
     columns_with_too_many_missing = columns_with_too_many_missing.index
-    cleaned_dataframe = cleaned_dataframe.drop(columns=columns_with_too_many_missing)
+    cleaned_dataframe = cleaned_dataframe.drop(columns=columns_with_too_many_missing, errors='ignore')
 
     # How many rows have missing values in each row?
     missing_rows = cleaned_dataframe.isnull().sum(axis=1)
@@ -145,47 +150,6 @@ def get_remodula_data(kind='t1', response='cutoff',
             'madrs_t0', f'madrs_{kind}', 'codicepaziente'
         ]
         
-        keep_columns = []
-        for col in bio_columns:
-            if col in cleaned_dataframe.columns:
-                keep_columns.append(col)
-
-        cleaned_dataframe = cleaned_dataframe[keep_columns]
-
-    if data_type == 'biological':
-        bio_columns = [
-            'bdnf_pgml_t0', 'probdnf_pgml_t0', 'bdnfprobdnf_t0', 'tnfalfa_pgml_t0',
-            'pcr_mgl_t0', 'acth_pgml_t0', 'tsh_microuiml_t0', 'ft3_pgml_t0',
-            'ft4_ngdl_t0', 'il1b_pgml_t0', 'il5_pgml_t0', 'il6_pgml_t0',
-            'bdnf_pgml_t1', 'probdnf_pgml_t1', 'bdnfprobdnf_t1', 'tnfalfa_pgml_t1',
-            'pcr_mgl_t1', 'acth_pgml_t1', 'tsh_microuiml_t1', 'ft3_pgml_t1',
-            'ft4_ngdl_t1', 'il1b_pgml_t1', 'il5_pgml_t1', 'il6_pgml_t1',
-            'bdnf_pgml_t2', 'probdnf_pgml_t2', 'bdnfprobdnf_t2', 'tnfalfa_pgml_t2',
-            'pcr_mgl_t2', 'acth_pgml_t2', 'tsh_microuiml_t2', 'ft3_pgml_t2',
-            'ft4_ngdl_t2', 'il1b_pgml_t2', 'il5_pgml_t2', 'il6_pgml_t2'
-        ]
-        
-        for col in bio_columns:
-            # Scale biological columns
-            if col in cleaned_dataframe.columns:
-                scaler = StandardScaler()
-                cleaned_dataframe[col] = scaler.fit_transform(cleaned_dataframe[[col]])
-            else:
-                logger.info(f"Column {col} not found")
-    elif data_type == 'onlybio':
-        bio_columns = [
-            'bdnf_pgml_t0', 'probdnf_pgml_t0', 'bdnfprobdnf_t0', 'tnfalfa_pgml_t0',
-            'pcr_mgl_t0', 'acth_pgml_t0', 'tsh_microuiml_t0', 'ft3_pgml_t0',
-            'ft4_ngdl_t0', 'il1b_pgml_t0', 'il5_pgml_t0', 'il6_pgml_t0',
-            'bdnf_pgml_t1', 'probdnf_pgml_t1', 'bdnfprobdnf_t1', 'tnfalfa_pgml_t1',
-            'pcr_mgl_t1', 'acth_pgml_t1', 'tsh_microuiml_t1', 'ft3_pgml_t1',
-            'ft4_ngdl_t1', 'il1b_pgml_t1', 'il5_pgml_t1', 'il6_pgml_t1',
-            'bdnf_pgml_t2', 'probdnf_pgml_t2', 'bdnfprobdnf_t2', 'tnfalfa_pgml_t2',
-            'pcr_mgl_t2', 'acth_pgml_t2', 'tsh_microuiml_t2', 'ft3_pgml_t2',
-            'ft4_ngdl_t2', 'il1b_pgml_t2', 'il5_pgml_t2', 'il6_pgml_t2', f'madrs_{kind}',
-            'madrs_t0', 'codicepaziente'
-        ]
-
         keep_columns = []
         for col in bio_columns:
             if col in cleaned_dataframe.columns:
