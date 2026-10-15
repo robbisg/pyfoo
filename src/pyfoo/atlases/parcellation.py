@@ -13,7 +13,7 @@ def get_schaefers_labels(scale=300):
     labels = [l.decode() if isinstance(l, bytes) else l for l in parcellation['labels']]
     
     # Transform vertices to fsaverage 164k space
-    fsaverage_schaefer = transforms.mni152_to_fsaverage(nifti_atlas, 
+    fsaverage_schaefer = transforms.mni152_to_fsaverage(parcellation['maps'], 
                                                         fsavg_density='164k', 
                                                         method='nearest')
     
