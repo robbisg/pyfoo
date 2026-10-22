@@ -32,7 +32,7 @@ def get_remodula_data(kind='t1', response='cutoff',
                       percentage_missing_subjects=0.45, 
                       n_classes=None):
     
-    path = "/media/robbis/DATA/meg/remodula/"
+    path = "/media/bioadmin/DATA/Shared/remodula/"
 
     if data_type == 'biological' or data_type == 'onlybio':
         fname = "remodula_bio.xlsx"

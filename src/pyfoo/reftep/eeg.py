@@ -69,7 +69,7 @@ CAPTIONS = {
 
 def interpolate_missing_channels_position(epochs, montage):
     # Define the standard montage and adjacency for interpolation
-    BVEF_PATH = '/home/robbis/git/BC-TMS-128.bvef'    
+    BVEF_PATH = '/home/bioadmin/mount/c2b/reftep/code/BC-TMS-128.bvef'    
     
     standard_montage = read_custom_montage(BVEF_PATH)
     channel_names = standard_montage.ch_names[2:]  # Exclude non-EEG channels
