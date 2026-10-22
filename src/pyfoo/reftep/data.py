@@ -5,9 +5,7 @@ import matplotlib.pyplot as pl
 from pymatreader import read_mat
 from pyfoo.reftep.distribution import extract_all_features
 
-RAW_PATH = '/media/robbis/Seagate_Pt1/REFTEP/'
-EEG_PATH = '/home/robbis/mount/meg_analysis/REFTEP++/cleaned/{eeg_id}/EEG_EMG_cleaned.mat'
-
+RAW_PATH = '/media/robbis/Expansion_24T/REFTEP_ORIG/'
 
 def extract_mep_distribution(sites=['aalto', 'chieti']):
 
@@ -44,14 +42,11 @@ def extract_mep_distribution(sites=['aalto', 'chieti']):
 
                 mep_data = read_mat(os.path.join(mep_dir, 'AmpsM.mat'))
                 meps = mep_data['AmpsM']['AmpsM']
-                bad_trials_emg = mep_data['badEMGtrials'][0]
-                bad_trials_emg_idx = np.where(bad_trials_emg == 1)[0]
+
             else:
                 eeg_id = subject['EEG'].lower()
-                mep_data = read_mat(EEG_PATH.format(eeg_id=eeg_id))
+                mep_data = read_mat(EEG_PATH.format(eeg_id=eeg_id), ['AmpsM'])
                 meps = mep_data['AmpsM']
-                bad_trials_emg = mep_data['badTrEMG'][0]
-                bad_trials_emg_idx = np.where(bad_trials_emg == 1)[0]
 
             log_mep = np.log10(meps[:,0])
             log_mep[log_mep <= 0] = 0.0001

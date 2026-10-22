@@ -82,7 +82,7 @@ def interpolate_missing_channels_position(epochs, montage):
     missing_channels = [ch for ch in epochs.ch_names if ch not in montage.ch_names]
     for ch in missing_channels:
         print(f"Channel {ch} is missing from the montage.")
-        adjacency_mask = np.isin(adj_chnames, missing_channels)
+        adjacency_mask = np.isin(adj_chnames, ch)
         adjacency_indices = adjacency.toarray()[adjacency_mask]
         adjacency_channels = np.array(adj_chnames)[adjacency_indices[0].nonzero()]
         print(f"Adjacent channels to {ch}: {adjacency_channels}")
